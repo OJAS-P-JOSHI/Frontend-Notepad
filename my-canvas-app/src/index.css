@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply m-0 font-sans;
+}
+
+.app-container {
+  @apply flex h-screen;
+}
+
+.sidebar {
+  @apply w-64 p-4 bg-gray-200 shadow-md;
+}
+
+.canvas-container {
+  @apply flex-grow relative bg-white;
+}
+
+.tool {
+  @apply flex items-center justify-center my-2 p-2 rounded-lg bg-blue-500 text-white cursor-pointer transition duration-300;
+}
+
+.tool:hover {
+  @apply bg-blue-700;
+}
