@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Stage, Layer, Rect, Circle, Line, Text, Transformer } from 'react-konva';
+import { SketchPicker } from 'react-color';
+
 
 const Canvas = ({ tool, setTool, history, addToHistory }) => {
   const [shapes, setShapes] = useState([]);
@@ -12,6 +14,11 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
   const transformerRef = useRef(null);
   const [editingText, setEditingText] = useState(null);
   const textAreaRef = useRef(null);
+  const [color, setColor] = useState('#000000');  // Default color black
+
+  const handleColorChange = (newColor) => {
+    setColor(newColor.hex);
+  };
 
   const handleMouseDown = (e) => {
     setIsDrawing(true);
@@ -19,20 +26,20 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
     let shape = {};
     switch (tool) {
       case 'rect':
-        shape = { type: 'rect', x, y, width: 0, height: 0 };
+        shape = { type: 'rect', x, y, width: 0, height: 0, color};
         break;
       case 'circle':
-        shape = { type: 'circle', x, y, radius: 0 };
+        shape = { type: 'circle', x, y, radius: 0, color};
         break;
       case 'line':
-        shape = { type: 'line', points: [x, y, x, y] };
+        shape = { type: 'line', points: [x, y, x, y], color};
         break;
       case 'text':
-        shape = { type: 'text', x, y, text: 'Text' };
+        shape = { type: 'text', x, y, text: 'Text', color};
         setEditingText(shape.length);
         break;
       case 'pencil':
-        shape = { type: 'pencil', points: [x, y] };
+        shape = { type: 'pencil', points: [x, y], color};
         break;
       default:
         return;
@@ -95,7 +102,7 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
         y={shape.y}
         width={shape.width}
         height={shape.height}
-        stroke="black"
+        stroke={color}
       />
     );
   };
@@ -107,7 +114,7 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
         x={shape.x}
         y={shape.y}
         radius={shape.radius}
-        stroke="black"
+        stroke={color}
       />
     );
   };
@@ -117,7 +124,7 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
       <Line
         key={index}
         points={shape.points}
-        stroke="black"
+        stroke={color}
         tension={0.5}
         lineCap="round"
         lineJoin="round"
@@ -135,6 +142,7 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
         x={shape.x}
         y={shape.y}
         text={shape.text}
+        fill={color}
         fontSize={20}
         onDblClick={() => {
           setEditingText(index);
@@ -149,7 +157,7 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
       <Line
         key={index}
         points={shape.points}
-        stroke="black"
+        stroke={color}
         tension={0.5}
         lineCap="round"
         lineJoin="round"
@@ -164,8 +172,13 @@ const Canvas = ({ tool, setTool, history, addToHistory }) => {
     addToHistory({ type: 'shape', shapes: newShapes });
   };
 
+ 
   return (
     <div className="canvas-container">
+      <SketchPicker
+        color={color}
+        onChange={handleColorChange}
+      />
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
