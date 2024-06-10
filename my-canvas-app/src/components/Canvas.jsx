@@ -2,73 +2,179 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useDrop } from 'react-dnd';
 import { Stage, Layer, Rect, Circle, RegularPolygon, Line, Text, Transformer } from 'react-konva';
+import Sidebar from './Sidebar';
 
-const Canvas = ({ tool, history, addToHistory }) => {
+const Canvas = ({ tool, setTool,   history, addToHistory }) => {
   const [shapes, setShapes] = useState([]);
-  const [lines, setLines] = useState([]);
+  //const [lines, setLines] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   // eslint-disable-next-line no-unused-vars
+  const [newShape, setNewShape] = useState(null);
   const [selectedShape, setSelectedShape] = useState(null);
   const transformerRef = useRef(null);
+  const [editingText, setEditingText] = useState(null);
+  const textAreaRef = useRef(null);
 
-  useEffect(() => {
-    if (history.length > 0) {
-      const lastAction = history[history.length - 1];
-      if (lastAction.type === 'shape') {
-        setShapes(lastAction.shapes);
-      } else if (lastAction.type === 'line') {
-        setLines(lastAction.lines);
-      }
-    } else {
-      setShapes([]);
-      setLines([]);
-    }
-  }, [history]);
+  // useEffect(() => {
+  //   if (history.length > 0) {
+  //     const lastAction = history[history.length - 1];
+  //     if (lastAction.type === 'shape') {
+  //       setShapes(lastAction.shapes);
+  //     } else if (lastAction.type === 'line') {
+  //       setLines(lastAction.lines);
+  //     }
+  //   } else {
+  //     setShapes([]);
+  //     setLines([]);
+  //   }
+  // }, [history]);
 
-  const [, drop] = useDrop(() => ({
-    accept: 'shape',
-    drop: (item, monitor) => {
-      const offset = monitor.getClientOffset();
-      const newShapes = [
-        ...shapes,
-        { shape: item.shape, x: offset.x, y: offset.y, width: 100, height: 100 }
-      ];
-      setShapes(newShapes);
-      addToHistory({ type: 'shape', shapes: newShapes });
-    }
-  }));
+  // const [, drop] = useDrop(() => ({
+  //   accept: 'shape',
+  //   drop: (item, monitor) => {
+  //     const offset = monitor.getClientOffset();
+  //     const newShapes = [
+  //       ...shapes,
+  //       { shape: item.shape, x: offset.x, y: offset.y, width: 100, height: 100 }
+  //     ];
+  //     setShapes(newShapes);
+  //     addToHistory({ type: 'shape', shapes: newShapes });
+  //   }
+  // }));
 
   const handleMouseDown = (e) => {
-    if (tool !== 'pencil') return;
+    if(!selectedShape) return;
     setIsDrawing(true);
-    const pos = e.target.getStage().getPointerPosition();
-    const newLines = [...lines, { points: [pos.x, pos.y] }];
-    setLines(newLines);
-    addToHistory({ type: 'line', lines: newLines });
+    const {x, y} = e.target.getStage().getPointerPosition();
+    let shape = {};
+    switch (selectedShape) {
+      case 'rect':
+        shape = {type: 'rect', x, y, width: 0, height: 0};
+        break;
+      case 'circle':
+        shape = {type: 'circle', x, y, radius: 0};
+        break;
+      case 'line':
+        shape = {type: 'line', points: [x, y, x, y]};
+        break;
+      case 'text':
+        shape = {type: 'text', x, y, text: 'Text'};
+        setEditingText(shape.length);
+        break;
+    
+      default:
+        return;
+    }
+    setNewShape(shape);
+    setShapes([...shapes, shape]);
   };
 
   const handleMouseMove = (e) => {
-    if (!isDrawing) return;
-    const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
-    const lastLine = lines[lines.length - 1];
-    lastLine.points = lastLine.points.concat([point.x, point.y]);
-
-    const newLines = [...lines];
-    newLines.splice(newLines.length - 1, 1, lastLine);
-    setLines(newLines);
-    addToHistory({ type: 'line', lines: newLines });
-  };
+    if(!isDrawing) return;
+    const {x, y} = e.target.getStage().getPointerPosition();
+    const newShapes = shapes.slice();
+    const shape = newShapes[newShapes.length - 1];
+    switch (shape.type) {
+      case 'rect':
+        shape.width = x - shape.x;
+        shape.height = y - shape.y;
+        break;
+      case 'circle':
+        shape.radius = Math.sqrt((x - shape.x) ** 2 + (y - shape.y) ** 2);
+        break;
+      case 'line':
+        shape.points[2] = x;
+        shape.points[3] = y;
+        break;
+      default:
+        break;
+    }
+    setShapes(newShapes);
+    setTool('');
+  }
 
   const handleMouseUp = () => {
     setIsDrawing(false);
+    setNewShape(null);
   };
 
-  const handleSelect = (e) => {
-    setSelectedShape(e.target);
-    transformerRef.current.nodes([e.target]);
-    transformerRef.current.getLayer().batchDraw();
-  };
+  useEffect(() => {
+    setSelectedShape(tool);
+  }, [tool]);
+
+  const handleTextEdit = (e) => {
+    const newShapes = shapes.slice();
+    newShapes[editingText].text = e.target.value;
+    setShapes(newShapes);
+  } 
+
+  const handleTextBlur = () => {
+    setEditingText(null);
+  }
+
+  const renderRect = (shape, index) => {
+    return (
+      <Rect
+        key={index}
+        x={shape.x}
+        y={shape.y}
+        width={shape.width}
+        height={shape.height}
+        stroke='black'
+        />
+    )
+  }
+
+  const renderCircle = (shape, index) => {
+    return (
+      <Circle
+        key={index}
+        x={shape.x}
+        y={shape.y}
+        radius={shape.radius}
+        stroke='black'
+        />
+    )
+  }
+
+  const renderLine = (shape, index) => {
+    return (
+      <Line
+        key={index}
+        points={shape.points}
+        stroke='black'
+        tension={0.5}
+        lineCap="round"
+        lineJoin="round"
+        globalCompositeOperation={
+          tool === 'eraser' ? 'destination-out' : 'source-over'
+        }
+        />
+    )
+  }
+
+  const renderText = (shape, index) => {
+    return (
+      <Text
+        key={index}
+        x={shape.x}
+        y={shape.y}
+        text={shape.text}
+        fontSize={20}
+        //draggable
+        onDblClick={
+          () => {
+            setEditingText(index);
+            textAreaRef.current.focus();
+          }
+        }
+        // onClick={() => {
+        //   transformerRef.current.nodes([shape]);
+        // }}
+        />
+    )
+  }
+
 
   const handleTransform = (index, newAttrs) => {
     const newShapes = shapes.slice();
@@ -78,7 +184,8 @@ const Canvas = ({ tool, history, addToHistory }) => {
   };
 
   return (
-    <div ref={drop} className="canvas-container">
+    <div className="canvas-container">
+      {/* <Sidebar setSelectedShape={setSelectedShape}/> */}
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
@@ -88,106 +195,18 @@ const Canvas = ({ tool, history, addToHistory }) => {
       >
         <Layer>
           {shapes.map((shape, index) => {
-            let shapeElement;
-            if (shape.shape === 'Rectangle') {
-              shapeElement = (
-                <Rect
-                  key={index}
-                  x={shape.x}
-                  y={shape.y}
-                  width={shape.width}
-                  height={shape.height}
-                  stroke="blue"
-                  draggable
-                  onClick={handleSelect}
-                  onTransformEnd={(e) => {
-                    handleTransform(index, {
-                      x: e.target.x(),
-                      y: e.target.y(),
-                      width: e.target.width(),
-                      height: e.target.height(),
-                    });
-                  }}
-                />
-              );
-            } else if (shape.shape === 'Circle') {
-              shapeElement = (
-                <Circle
-                  key={index}
-                  x={shape.x}
-                  y={shape.y}
-                  radius={shape.width / 2}
-                  stroke="green"
-                  draggable
-                  onClick={handleSelect}
-                  onTransformEnd={(e) => {
-                    handleTransform(index, {
-                      x: e.target.x(),
-                      y: e.target.y(),
-                      width: e.target.width(),
-                      height: e.target.height(),
-                    });
-                  }}
-                />
-              );
-            } else if (shape.shape === 'Triangle') {
-              shapeElement = (
-                <RegularPolygon
-                  key={index}
-                  x={shape.x}
-                  y={shape.y}
-                  sides={3}
-                  radius={shape.width / 2}
-                  stroke="red"
-                  draggable
-                  onClick={handleSelect}
-                  onTransformEnd={(e) => {
-                    handleTransform(index, {
-                      x: e.target.x(),
-                      y: e.target.y(),
-                      width: e.target.width(),
-                      height: e.target.height(),
-                    });
-                  }}
-                />
-              );
-            } else if (shape.shape === 'TextBox') {
-              shapeElement = (
-                <Text
-                  key={index}
-                  x={shape.x}
-                  y={shape.y}
-                  text="Text"
-                  fontSize={20}
-                  draggable
-                  onClick={handleSelect}
-                  onTransformEnd={(e) => {
-                    handleTransform(index, {
-                      x: e.target.x(),
-                      y: e.target.y(),
-                      width: e.target.width(),
-                      height: e.target.height(),
-                    });
-                  }}
-                />
-              );
-            }
-            return shapeElement;
-          })}
-          {lines.map((line, i) => (
-            <Line
-              key={i}
-              points={line.points}
-              stroke="black"
-              strokeWidth={2}
-              tension={0.5}
-              lineCap="round"
-              lineJoin="round"
-              globalCompositeOperation={
-                tool === 'eraser' ? 'destination-out' : 'source-over'
-              }
-            />
-          ))}
+            switch (shape.type) {
+              case 'rect':
+                return renderRect(shape, index);
+              case 'circle':
+                return renderCircle(shape, index);
+              case 'line':
+                return renderLine(shape, index);
+              case 'text':
+                return renderText(shape, index);
+                default:
+                  return null;
+          }})}
           <Transformer
             ref={transformerRef}
             keepRatio={false}
@@ -204,14 +223,28 @@ const Canvas = ({ tool, history, addToHistory }) => {
           />
         </Layer>
       </Stage>
+        {editingText !== null && editingText < shapes.length && (
+          <textarea
+            ref={textAreaRef}
+            value={shapes[editingText].text}
+            onChange={handleTextEdit}
+            onBlur={handleTextBlur}
+            style={{
+              position: 'absolute',
+              top: shapes[editingText].y,
+              left: shapes[editingText].x,
+            }}
+          />
+        
+        )}
     </div>
   );
 };
 
 Canvas.propTypes = {
-  tool: PropTypes.string.isRequired,
-  history: PropTypes.array.isRequired,
-  addToHistory: PropTypes.func.isRequired,
+  // tool: PropTypes.string.isRequired,
+  // history: PropTypes.array.isRequired,
+  // addToHistory: PropTypes.func.isRequired,
 };
 
 export default Canvas;
