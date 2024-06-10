@@ -1,46 +1,44 @@
-// eslint-disable-next-line no-unused-vars
+/* eslint-disable no-unused-vars */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { IconButton } from '@mui/material';
-import CreateIcon from '@mui/icons-material/Create';
-import CropSquareIcon from '@mui/icons-material/CropSquare';
-import CircleIcon from '@mui/icons-material/Circle';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
-import TextFieldsIcon from '@mui/icons-material/TextFields';
-
-import { ColorLens } from '@mui/icons-material';
+import { ColorLens, Undo } from '@mui/icons-material';
 import { SketchPicker } from 'react-color';
 
-const Sidebar = ({ setTool, color, handleColorChange }) => {
+const Sidebar = ({ setTool, undo, color, setColor }) => {
   return (
     <div className="sidebar">
       <IconButton className="tool" onClick={() => setTool('rect')}>
-        <CropSquareIcon />
+        <span>Rectangle</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('circle')}>
-        <CircleIcon />
+        <span>Circle</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('line')}>
-        <ShowChartIcon />
+        <span>Line</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('text')}>
-        <TextFieldsIcon />
+        <span>Text</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('pencil')}>
-        <CreateIcon />
+        <span>Pencil</span>
       </IconButton>
-      <IconButton className="tool" onClick={() => setTool('color')}>
-        <ColorLens />
+      <IconButton className="tool" onClick={undo}>
+        <Undo />
       </IconButton>
-      <SketchPicker color={color} onChange={handleColorChange} />
+      <SketchPicker
+        color={color}
+        onChangeComplete={(newColor) => setColor(newColor.hex)}
+      />
     </div>
   );
 };
 
 Sidebar.propTypes = {
   setTool: PropTypes.func.isRequired,
+  undo: PropTypes.func.isRequired,
   color: PropTypes.string.isRequired,
-  handleColorChange: PropTypes.func.isRequired,
+  setColor: PropTypes.func.isRequired,
 };
 
 export default Sidebar;

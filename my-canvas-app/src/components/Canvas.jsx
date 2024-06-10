@@ -1,11 +1,9 @@
 /* eslint-disable no-unused-vars */
-// eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Stage, Layer, Rect, Circle, Line, Text, Transformer } from 'react-konva';
 
-const Canvas = ({ tool, color, history, addToHistory }) => {
-  const [shapes, setShapes] = useState([]);
+const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [newShape, setNewShape] = useState(null);
   const [selectedShape, setSelectedShape] = useState(null);
@@ -29,7 +27,7 @@ const Canvas = ({ tool, color, history, addToHistory }) => {
         break;
       case 'text':
         shape = { type: 'text', x, y, text: 'Text', color };
-        setEditingText(shape.length);
+        setEditingText(shapes.length);
         break;
       case 'pencil':
         shape = { type: 'pencil', points: [x, y], color };
@@ -70,7 +68,7 @@ const Canvas = ({ tool, color, history, addToHistory }) => {
   const handleMouseUp = () => {
     setIsDrawing(false);
     setNewShape(null);
-    addToHistory({ type: 'shape', shapes });
+    addToHistory([...shapes]);
   };
 
   useEffect(() => {
@@ -162,7 +160,7 @@ const Canvas = ({ tool, color, history, addToHistory }) => {
     const newShapes = shapes.slice();
     newShapes[index] = { ...newShapes[index], ...newAttrs };
     setShapes(newShapes);
-    addToHistory({ type: 'shape', shapes: newShapes });
+    addToHistory(newShapes);
   };
 
   return (
@@ -226,9 +224,10 @@ const Canvas = ({ tool, color, history, addToHistory }) => {
 
 Canvas.propTypes = {
   tool: PropTypes.string.isRequired,
-  color: PropTypes.string.isRequired,
-  history: PropTypes.array.isRequired,
+  shapes: PropTypes.array.isRequired,
+  setShapes: PropTypes.func.isRequired,
   addToHistory: PropTypes.func.isRequired,
+  color: PropTypes.string.isRequired,
 };
 
 export default Canvas;
