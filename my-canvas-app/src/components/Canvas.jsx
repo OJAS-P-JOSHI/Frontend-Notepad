@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Circle, Line, Arrow, Text, Transformer } from 'react-konva';
 import PropTypes from 'prop-types';
-import { Stage, Layer, Rect, Circle, Line, Text, Transformer } from 'react-konva';
 import { SketchPicker } from 'react-color';
 
 
@@ -44,10 +43,7 @@ const Canvas = ({ tool, addToHistory }) => {
         shape = { type: 'pencil', points: [x, y], color};
         break;
       case 'eraser':
-        shape = { type: 'eraser', points: [x, y], color};
-        break;
-      case 'eraser':
-        shape = { type: 'eraser', points: [x, y], color};
+        shape = { type: 'eraser', points: [x, y]};
         break;
       default:
         return;
