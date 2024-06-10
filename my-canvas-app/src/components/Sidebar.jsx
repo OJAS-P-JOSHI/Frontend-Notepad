@@ -1,42 +1,35 @@
+/* eslint-disable no-unused-vars */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { IconButton } from '@mui/material';
-import CreateIcon from '@mui/icons-material/Create';
-import CropSquareIcon from '@mui/icons-material/CropSquare';
-import CircleIcon from '@mui/icons-material/Circle';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
-import TextFieldsIcon from '@mui/icons-material/TextFields';
-import UndoIcon from '@mui/icons-material/Undo';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { ColorLens, Undo } from '@mui/icons-material';
+import { SketchPicker } from 'react-color';
 
-const Sidebar = ({ setTool, undo }) => {
+const Sidebar = ({ setTool, undo, color, setColor }) => {
   return (
     <div className="sidebar">
       <IconButton className="tool" onClick={() => setTool('rect')}>
-        <CropSquareIcon />
+        <span>Rectangle</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('circle')}>
-        <CircleIcon />
+        <span>Circle</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('line')}>
-        <ShowChartIcon />
-      </IconButton>
-      <IconButton className="tool" onClick={() => setTool('arrow')}>
-        <ArrowForwardIcon />
+        <span>Line</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('text')}>
-        <TextFieldsIcon />
+        <span>Text</span>
       </IconButton>
       <IconButton className="tool" onClick={() => setTool('pencil')}>
-        <CreateIcon />
-      </IconButton>
-      <IconButton className="tool" onClick={() => setTool('eraser')}>
-        <DeleteIcon />
+        <span>Pencil</span>
       </IconButton>
       <IconButton className="tool" onClick={undo}>
-        <UndoIcon />
+        <Undo />
       </IconButton>
+      <SketchPicker
+        color={color}
+        onChangeComplete={(newColor) => setColor(newColor.hex)}
+      />
     </div>
   );
 };
@@ -44,6 +37,8 @@ const Sidebar = ({ setTool, undo }) => {
 Sidebar.propTypes = {
   setTool: PropTypes.func.isRequired,
   undo: PropTypes.func.isRequired,
+  color: PropTypes.string.isRequired,
+  setColor: PropTypes.func.isRequired,
 };
 
 export default Sidebar;
