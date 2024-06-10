@@ -24,8 +24,8 @@ const App = () => {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="app-container">
-      <Sidebar setTool={setTool} undo={undo} />
-      <Canvas tool={tool} addToHistory={addToHistory} />
+        <Sidebar setTool={setTool} />
+        <Canvas tool={tool} setTool={setTool} history={history} addToHistory={addToHistory} />
       </div>
     </DndProvider>
   );
