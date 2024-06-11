@@ -11,6 +11,7 @@ const App = () => {
   const [history, setHistory] = useState([]);
   const [shapes, setShapes] = useState([]);
   const [color, setColor] = useState('#000000'); // Default color black
+  const [size, setSize] = useState(5);  // Default size
 
   const undo = () => {
     setHistory((prevHistory) => {
@@ -33,6 +34,8 @@ const App = () => {
           undo={undo}
           color={color}
           setColor={setColor}
+          size={size}
+          setSize={setSize}
         />
         <Canvas
           tool={tool}
