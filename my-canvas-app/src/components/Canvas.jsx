@@ -1,17 +1,18 @@
-/* eslint-disable no-unused-vars */
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Stage, Layer, Rect, Circle, Line, Text, Transformer } from 'react-konva';
+import { Stage, Layer, Rect, Circle, Line, Text, Arrow } from 'react-konva';
 
 const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [newShape, setNewShape] = useState(null);
-  const [selectedShape, setSelectedShape] = useState(null);
-  const transformerRef = useRef(null);
+  const [lastShapeAdded, setLastShapeAdded] = useState(null);
   const [editingText, setEditingText] = useState(null);
   const textAreaRef = useRef(null);
 
   const handleMouseDown = (e) => {
+    if (tool === 'text' || tool === 'move') return;
     setIsDrawing(true);
     const { x, y } = e.target.getStage().getPointerPosition();
     let shape = {};
@@ -25,17 +26,16 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
       case 'line':
         shape = { type: 'line', points: [x, y, x, y], color };
         break;
-      case 'text':
-        shape = { type: 'text', x, y, text: 'Text', color };
-        setEditingText(shapes.length);
-        break;
       case 'pencil':
         shape = { type: 'pencil', points: [x, y], color };
         break;
-      default:
-        return;
+      case 'arrow':
+        shape = { type: 'arrow', points: [x, y, x, y], color };
+        break;
+    
     }
     setNewShape(shape);
+    setLastShapeAdded(shape);
     setShapes([...shapes, shape]);
   };
 
@@ -53,10 +53,11 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
         shape.radius = Math.sqrt((x - shape.x) ** 2 + (y - shape.y) ** 2);
         break;
       case 'line':
-        shape.points[2] = x;
-        shape.points[3] = y;
+      case 'arrow':
+        shape.points = [shape.points[0], shape.points[1], x, y];
         break;
       case 'pencil':
+      case 'eraser': 
         shape.points = [...shape.points, x, y];
         break;
       default:
@@ -68,99 +69,60 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
   const handleMouseUp = () => {
     setIsDrawing(false);
     setNewShape(null);
-    addToHistory([...shapes]);
+    if (tool !== 'text') {
+      addToHistory([...shapes, lastShapeAdded]);
+    }
+  };
+
+  const handleDblClick = (e) => {
+    if (tool === 'text') {
+      const { x, y } = e.target.getStage().getPointerPosition();
+      const shape = { type: 'text', x, y, text: 'Type your text', color };
+      setShapes([...shapes, shape]);
+      setEditingText(shapes.length);
+      setLastShapeAdded(shape);
+    }
   };
 
   useEffect(() => {
-    setSelectedShape(tool);
-  }, [tool]);
+    if (editingText !== null && textAreaRef.current) {
+      const { x, y } = shapes[editingText];
+      textAreaRef.current.style.left = `${x}px`;
+      textAreaRef.current.style.top = `${y}px`;
+      textAreaRef.current.focus();
+    }
+  }, [editingText, shapes]);
 
   const handleTextEdit = (e) => {
     const newShapes = shapes.slice();
     newShapes[editingText].text = e.target.value;
     setShapes(newShapes);
+    setLastShapeAdded(newShapes[editingText]);
   };
 
   const handleTextBlur = () => {
     setEditingText(null);
+    addToHistory([...shapes, lastShapeAdded]);
   };
 
-  const renderRect = (shape, index) => {
-    return (
-      <Rect
-        key={index}
-        x={shape.x}
-        y={shape.y}
-        width={shape.width}
-        height={shape.height}
-        stroke={shape.color}
-      />
-    );
+  const handleTextFocus = (e) => {
+    if (e.target.value === 'Type your text') {
+      e.target.value = '';
+    }
   };
 
-  const renderCircle = (shape, index) => {
-    return (
-      <Circle
-        key={index}
-        x={shape.x}
-        y={shape.y}
-        radius={shape.radius}
-        stroke={shape.color}
-      />
-    );
+  const handleStageClick = (e) => {
+    if (tool === 'text' && editingText !== null) {
+      setEditingText(null);
+    }
   };
 
-  const renderLine = (shape, index) => {
-    return (
-      <Line
-        key={index}
-        points={shape.points}
-        stroke={shape.color}
-        tension={0.5}
-        lineCap="round"
-        lineJoin="round"
-        globalCompositeOperation={
-          tool === 'eraser' ? 'destination-out' : 'source-over'
-        }
-      />
-    );
-  };
-
-  const renderText = (shape, index) => {
-    return (
-      <Text
-        key={index}
-        x={shape.x}
-        y={shape.y}
-        text={shape.text}
-        fill={shape.color}
-        fontSize={20}
-        onDblClick={() => {
-          setEditingText(index);
-          textAreaRef.current.focus();
-        }}
-      />
-    );
-  };
-
-  const renderPencil = (shape, index) => {
-    return (
-      <Line
-        key={index}
-        points={shape.points}
-        stroke={shape.color}
-        tension={0.5}
-        lineCap="round"
-        lineJoin="round"
-      />
-    );
-  };
-
-  const handleTransform = (index, newAttrs) => {
+  const handleDragEnd = (e, index) => {
     const newShapes = shapes.slice();
-    newShapes[index] = { ...newShapes[index], ...newAttrs };
+    newShapes[index].x = e.target.x();
+    newShapes[index].y = e.target.y();
     setShapes(newShapes);
-    addToHistory(newShapes);
+    addToHistory([...newShapes, lastShapeAdded]);
   };
 
   return (
@@ -171,38 +133,98 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDblClick={handleDblClick}
+        onClick={handleStageClick}
       >
         <Layer>
           {shapes.map((shape, index) => {
             switch (shape.type) {
               case 'rect':
-                return renderRect(shape, index);
+                return (
+                  <Rect
+                    key={index}
+                    x={shape.x}
+                    y={shape.y}
+                    width={shape.width}
+                    height={shape.height}
+                    stroke={shape.color}
+                    draggable={tool === 'move'}
+                    onDragEnd={(e) => handleDragEnd(e, index)}
+                  />
+                );
               case 'circle':
-                return renderCircle(shape, index);
+                return (
+                  <Circle
+                    key={index}
+                    x={shape.x}
+                    y={shape.y}
+                    radius={shape.radius}
+                    stroke={shape.color}
+                    draggable={tool === 'move'}
+                    onDragEnd={(e) => handleDragEnd(e, index)}
+                  />
+                );
               case 'line':
-                return renderLine(shape, index);
-              case 'text':
-                return renderText(shape, index);
+                return (
+                  <Line
+                    key={index}
+                    points={shape.points}
+                    stroke={shape.color}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                );
               case 'pencil':
-                return renderPencil(shape, index);
+                return (
+                  <Line
+                    key={index}
+                    points={shape.points}
+                    stroke={shape.color}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                );
+              case 'arrow':
+                return (
+                  <Arrow
+                    key={index}
+                    points={shape.points}
+                    stroke={shape.color}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                );
+              case 'eraser':
+                return (
+                  <Line
+                    key={index}
+                    points={shape.points}
+                    stroke="#ffffff"
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                );
+              case 'text':
+                return (
+                  <Text
+                    key={index}
+                    x={shape.x}
+                    y={shape.y}
+                    text={shape.text}
+                    fill={shape.color}
+                    fontSize={20}
+                    draggable={tool === 'move'}
+                    onDragEnd={(e) => handleDragEnd(e, index)}
+                  />
+                );
               default:
                 return null;
             }
           })}
-          <Transformer
-            ref={transformerRef}
-            keepRatio={false}
-            enabledAnchors={[
-              'top-left',
-              'top-right',
-              'bottom-left',
-              'bottom-right',
-              'middle-left',
-              'middle-right',
-              'top-center',
-              'bottom-center',
-            ]}
-          />
         </Layer>
       </Stage>
       {editingText !== null && editingText < shapes.length && (
@@ -211,10 +233,19 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
           value={shapes[editingText].text}
           onChange={handleTextEdit}
           onBlur={handleTextBlur}
+          onFocus={handleTextFocus}
           style={{
             position: 'absolute',
             top: shapes[editingText].y,
             left: shapes[editingText].x,
+            fontSize: '20px',
+            color: shapes[editingText].color,
+            background: 'transparent',
+            border: '1px dashed black',
+            outline: 'none',
+            resize: 'none',
+            overflow: 'hidden',
+            padding: '2px',
           }}
         />
       )}
@@ -231,3 +262,8 @@ Canvas.propTypes = {
 };
 
 export default Canvas;
+
+
+
+
+
