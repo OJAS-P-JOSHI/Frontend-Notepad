@@ -1,47 +1,46 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Stage, Layer, Rect, Circle, Line, Arrow, Text, Transformer } from 'react-konva';
+import { Stage, Layer, Rect, Circle, Line, Text, Arrow } from 'react-konva';
+import { Stage as KonvaStage } from 'konva';
+import { toPng } from 'html-to-image';
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-const Canvas = ({ tool, shapes, setShapes, addToHistory, color, size}) => {
+const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [newShape, setNewShape] = useState(null);
-  const [selectedShape, setSelectedShape] = useState(null);
-  const transformerRef = useRef(null);
+  const [lastShapeAdded, setLastShapeAdded] = useState(null);
   const [editingText, setEditingText] = useState(null);
   const textAreaRef = useRef(null);
+  const canvasRef = useRef(null);
 
   const handleMouseDown = (e) => {
-    setIsDrawing(true);
+    if (tool === 'text' || tool === 'move') return;
     const { x, y } = e.target.getStage().getPointerPosition();
     let shape = {};
     switch (tool) {
       case 'rect':
-        shape = { type: 'rect', x, y, width: 0, height: 0, color, size };
+        shape = { type: 'rect', x, y, width: 0, height: 0, color };
         break;
       case 'circle':
-        shape = { type: 'circle', x, y, radius: 0, color, size };
+        shape = { type: 'circle', x, y, radius: 0, color };
         break;
       case 'line':
-        shape = { type: 'line', points: [x, y, x, y], color, size };
-        break;
-      case 'text':
-        shape = { type: 'text', x, y, text: 'Text', color, size };
-        setEditingText(shapes.length);
+        shape = { type: 'line', points: [x, y, x, y], color };
         break;
       case 'pencil':
-        shape = { type: 'pencil', points: [x, y], color, size };
+        shape = { type: 'pencil', points: [x, y], color };
         break;
-        case 'arrow':
-          shape = { type: 'arrow', points: [x, y, x, y], color, size };
-          break;
-      case 'eraser':
-        shape = { type: 'eraser', points: [x, y], color: '#ffffff', size };
+      case 'arrow':
+        shape = { type: 'arrow', points: [x, y, x, y], color };
         break;
       default:
-        return;
+        break;
     }
+    setIsDrawing(true);
     setNewShape(shape);
+    setLastShapeAdded(shape);
     setShapes([...shapes, shape]);
   };
 
@@ -59,15 +58,15 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color, size}) => {
         shape.radius = Math.sqrt((x - shape.x) ** 2 + (y - shape.y) ** 2);
         break;
       case 'line':
-        shape.points[2] = x;
-        shape.points[3] = y;
+        shape.points = [shape.points[0], shape.points[1], x, y];
+        break;
+      case 'arrow':
+        shape.points = [shape.points[0], shape.points[1], x, y];
         break;
       case 'pencil':
+      case 'eraser':
         shape.points = [...shape.points, x, y];
         break;
-        case 'eraser':
-          shape.points = [...shape.points, x, y];
-          break;
       default:
         break;
     }
@@ -75,126 +74,106 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color, size}) => {
   };
 
   const handleMouseUp = () => {
-    setIsDrawing(false);
-    setNewShape(null);
-    addToHistory([...shapes]);
+    if (isDrawing) {
+      setIsDrawing(false);
+      if (tool !== 'text') {
+        const updatedShapes = shapes.slice(0, -1);
+        if (newShape.type === 'arrow' || newShape.type === 'line') {
+          if (newShape.points[0] !== newShape.points[2] || newShape.points[1] !== newShape.points[3]) {
+            updatedShapes.push(newShape);
+          }
+        } else {
+          updatedShapes.push(newShape);
+        }
+        setShapes(updatedShapes);
+        addToHistory(updatedShapes);
+      }
+    }
+  };
+
+  const handleDblClick = (e) => {
+    if (tool === 'text') {
+      const { x, y } = e.target.getStage().getPointerPosition();
+      const shape = { type: 'text', x, y, text: 'Type your text', color };
+      setShapes([...shapes, shape]);
+      setEditingText(shapes.length);
+      setLastShapeAdded(shape);
+    }
   };
 
   useEffect(() => {
-    setSelectedShape(tool);
-  }, [tool]);
+    if (editingText !== null && textAreaRef.current) {
+      const { x, y } = shapes[editingText];
+      const textarea = textAreaRef.current;
+      textarea.style.left = `${x}px`;
+      textarea.style.top = `${y}px`;
+      textarea.style.display = 'block';
+      textarea.value = shapes[editingText].text;
+      textarea.focus();
+    }
+  }, [editingText, shapes]);
 
   const handleTextEdit = (e) => {
     const newShapes = shapes.slice();
     newShapes[editingText].text = e.target.value;
     setShapes(newShapes);
+    setLastShapeAdded(newShapes[editingText]);
   };
 
   const handleTextBlur = () => {
-    setEditingText(null);
+    if (editingText !== null) {
+      const newShapes = shapes.slice();
+      if (newShapes[editingText].text === '' || newShapes[editingText].text === 'Type your text') {
+        newShapes.splice(editingText, 1); // Remove the text shape if it's empty or default text
+        setShapes(newShapes);
+      }
+      setEditingText(null);
+      textAreaRef.current.style.display = 'none'; // Hide textarea on blur
+      addToHistory([...newShapes]);
+    }
   };
 
-  const renderRect = (shape, index) => {
-    return (
-      <Rect
-        key={index}
-        x={shape.x}
-        y={shape.y}
-        width={shape.width}
-        height={shape.height}
-        stroke={shape.color}
-        strokeWidth={shape.size}
-      />
-    );
+  const handleTextFocus = (e) => {
+    if (e.target.value === 'Type your text') {
+      e.target.value = '';
+    }
   };
 
-  const renderCircle = (shape, index) => {
-    return (
-      <Circle
-        key={index}
-        x={shape.x}
-        y={shape.y}
-        radius={shape.radius}
-        stroke={shape.color}
-        strokeWidth={shape.size}
-      />
-    );
+  const handleCanvasClick = (e) => {
+    if (tool === 'text') {
+      setEditingText(null); // This will blur the textarea and add the text to the canvas
+    }
   };
 
-  const renderLine = (shape, index) => {
-    return (
-      <Line
-        key={index}
-        points={shape.points}
-        stroke={shape.color}
-        strokeWidth={shape.size}
-        tension={0.5}
-        lineCap="round"
-        lineJoin="round"
-        globalCompositeOperation={
-          tool === 'eraser' ? 'destination-out' : 'source-over'
-        }
-      />
-    );
-  };
-
-  const renderArrow = (shape, index) => {
-    return (
-      <Arrow
-        key={index}
-        points={shape.points}
-        stroke={shape.color}
-        fill={shape.color}
-        strokeWidth={shape.size}
-        pointerLength={10}
-        pointerWidth={10}
-        lineCap="round"
-        lineJoin="round"
-        draggable
-        onClick={() => setSelectedShape(index)}
-        onTransformEnd={(e) => handleTransform(index, e.target.attrs)}
-      />
-    );
-  };
-
-  const renderText = (shape, index) => {
-    return (
-      <Text
-        key={index}
-        x={shape.x}
-        y={shape.y}
-        text={shape.text}
-        fill={shape.color}
-        fontSize={20}
-        onDblClick={() => {
-          setEditingText(index);
-          textAreaRef.current.focus();
-        }}
-      />
-    );
-  };
-
-
-
-  const renderPencil = (shape, index) => {
-    return (
-      <Line
-        key={index}
-        points={shape.points}
-        stroke={shape.color}
-        strokeWidth={shape.size}
-        tension={0.5}
-        lineCap="round"
-        lineJoin="round"
-      />
-    );
-  };
-
-  const handleTransform = (index, newAttrs) => {
+  const handleDragEnd = (e, index) => {
     const newShapes = shapes.slice();
-    newShapes[index] = { ...newShapes[index], ...newAttrs };
+    newShapes[index].x = e.target.x();
+    newShapes[index].y = e.target.y();
     setShapes(newShapes);
-    addToHistory(newShapes);
+    addToHistory([...newShapes, lastShapeAdded]);
+  };
+
+  const handleDownload = async (format) => {
+    if (format === 'png') {
+      try {
+        const dataUrl = await toPng(canvasRef.current);
+        saveAs(dataUrl, 'canvas-drawing.png');
+      } catch (error) {
+        console.error('Error saving PNG:', error);
+      }
+    } else if (format === 'pdf') {
+      try {
+        const canvas = await html2canvas(canvasRef.current.container());
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF();
+        const imgWidth = pdf.internal.pageSize.getWidth();
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+        pdf.save('canvas-drawing.pdf');
+      } catch (error) {
+        console.error('Error saving PDF:', error);
+      }
+    }
   };
 
   return (
@@ -205,57 +184,140 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color, size}) => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDblClick={handleDblClick}
+        onClick={handleCanvasClick}
+        ref={canvasRef}
       >
         <Layer>
           {shapes.map((shape, index) => {
             switch (shape.type) {
               case 'rect':
-                return renderRect(shape, index);
+                return (
+                  <Rect
+                    key={index}
+                    x={shape.x}
+                    y={shape.y}
+                    width={shape.width}
+                    height={shape.height}
+                    stroke={shape.color}
+                    draggable={tool === 'move'}
+                    onDragEnd={(e) => handleDragEnd(e, index)}
+                  />
+                );
               case 'circle':
-                return renderCircle(shape, index);
+                return (
+                  <Circle
+                    key={index}
+                    x={shape.x}
+                    y={shape.y}
+                    radius={shape.radius}
+                    stroke={shape.color}
+                    draggable={tool === 'move'}
+                    onDragEnd={(e) => handleDragEnd(e, index)}
+                  />
+                );
               case 'line':
-                return renderLine(shape, index);
-              case 'text':
-                return renderText(shape, index);
+                return (
+                  <>
+                    <Line
+                      key={`${index}-line`}
+                      points={shape.points}
+                      stroke={shape.color}
+                      tension={0.5}
+                      lineCap="round"
+                      lineJoin="round"
+                    />
+                    {shape.points.length > 2 && (
+                      <Arrow
+                        key={`${index}-arrow`}
+                        points={shape.points}
+                        stroke={shape.color}
+                        fill={shape.color}
+                        pointerLength={10}
+                        pointerWidth={10}
+                      />
+                    )}
+                  </>
+                );
               case 'pencil':
-                return renderPencil(shape, index);
+                return (
+                  <Line
+                    key={index}
+                    points={shape.points}
+                    stroke={shape.color}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                );
               case 'arrow':
-                return renderLine(shape, index);
+                return (
+                  <Arrow
+                    key={index}
+                    points={shape.points}
+                    stroke={shape.color}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                );
               case 'eraser':
-                return renderLine(shape, index);
+                return (
+                  <Line
+                    key={index}
+                    points={shape.points}
+                    stroke="#ffffff"
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                );
+              
+              case 'text':
+                return (
+                  editingText !== index && (
+                    <Text
+                      key={index}
+                      x={shape.x}
+                      y={shape.y}
+                      text={shape.text}
+                      fill={shape.color}
+                      fontSize={20}
+                      draggable={tool === 'move'}
+                      onDragEnd={(e) => handleDragEnd(e, index)}
+                      onDblClick={() => setEditingText(index)}
+                    />
+                  )
+                );
               default:
                 return null;
             }
           })}
-          <Transformer
-            ref={transformerRef}
-            keepRatio={false}
-            enabledAnchors={[
-              'top-left',
-              'top-right',
-              'bottom-left',
-              'bottom-right',
-              'middle-left',
-              'middle-right',
-              'top-center',
-              'bottom-center',
-            ]}
-          />
         </Layer>
       </Stage>
-      {editingText !== null && editingText < shapes.length && (
-        <textarea
-          ref={textAreaRef}
-          value={shapes[editingText].text}
-          onChange={handleTextEdit}
-          onBlur={handleTextBlur}
-          style={{
-            position: 'absolute',
-            top: shapes[editingText].y,
-            left: shapes[editingText].x,
-          }}
-        />
-      )}
+      <textarea
+        ref={textAreaRef}
+        onChange={handleTextEdit}
+        onBlur={handleTextBlur}
+        onFocus={handleTextFocus}
+        style={{
+          position: 'absolute',
+          fontSize: '20px',
+          color: shapes[editingText]?.color || 'black',
+          border: '1px solid black',
+          resize: 'both',
+          overflow: 'auto',
+          padding: '2px',
+          minWidth: '500px',
+          display: editingText !== null ? 'block' : 'none',
+          top: shapes[editingText]?.y || 0,
+          left: shapes[editingText]?.x || 0,
+        }}
+      />
+      <div className="download-buttons">
+        <button onClick={() => handleDownload('png')}>Download as PNG</button>
+        <button onClick={() => handleDownload('pdf')}>Download as PDF</button>
+      </div>
     </div>
   );
 };
@@ -269,3 +331,4 @@ Canvas.propTypes = {
 };
 
 export default Canvas;
+

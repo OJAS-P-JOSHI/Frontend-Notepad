@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Canvas from './components/Canvas';
@@ -8,10 +7,9 @@ import './index.css';
 
 const App = () => {
   const [tool, setTool] = useState('');
-  const [history, setHistory] = useState([]);
   const [shapes, setShapes] = useState([]);
   const [color, setColor] = useState('#000000'); // Default color black
-  const [size, setSize] = useState(5);  // Default size
+  const [history, setHistory] = useState([]);
 
   const undo = () => {
     setHistory((prevHistory) => {
@@ -34,8 +32,7 @@ const App = () => {
           undo={undo}
           color={color}
           setColor={setColor}
-          size={size}
-          setSize={setSize}
+          stageRef={{ current: { handleExportPNG: () => {} } }} // Placeholder for ref
         />
         <Canvas
           tool={tool}
@@ -43,6 +40,7 @@ const App = () => {
           setShapes={setShapes}
           addToHistory={addToHistory}
           color={color}
+          stageRef={{ current: { handleExportPNG: () => {}, handleExportPDF: () => {} } }} // Placeholder for ref
         />
       </div>
     </DndProvider>
