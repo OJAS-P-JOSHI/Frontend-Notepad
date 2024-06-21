@@ -2,10 +2,11 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { IconButton, Popover, Box } from '@mui/material';
-import { Rectangle, PanTool, Circle, ArrowUpward, TextFields, Undo, GetApp, Create, ColorLens } from '@mui/icons-material';
+import { Rectangle, PanTool, Circle, ArrowUpward, TextFields, Undo, GetApp, Create, ColorLens, FileDownload } from '@mui/icons-material'; // Import FileDownload icon
 import { SketchPicker } from 'react-color';
+import PngExp from './PngExp'; // Import PngExp component
 
-const Sidebar = ({ setTool, undo, color, setColor, stageRef }) => {
+const Sidebar = ({ setTool, undo, color, setColor, stageRef, setShapes }) => { // Include stageRef prop
   const [anchorEl, setAnchorEl] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -43,13 +44,6 @@ const Sidebar = ({ setTool, undo, color, setColor, stageRef }) => {
     document.body.removeChild(link);
   };
 
-  const exportToPDF = () => {
-    const uri = stageRef.current.toDataURL({ mimeType: 'image/jpeg' });
-    const pdf = new jsPDF();
-    pdf.addImage(uri, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-    pdf.save('canvas-drawing.pdf');
-  };
-
   return (
     <div className="sidebar">
       <IconButton className="tool" onClick={() => setTool('rect')}>
@@ -73,7 +67,7 @@ const Sidebar = ({ setTool, undo, color, setColor, stageRef }) => {
       <IconButton className="tool" onClick={undo}>
         <Undo />
       </IconButton>
-      
+
       <div
         onMouseEnter={handleColorIconEnter}
         onMouseLeave={handleColorIconLeave}
@@ -89,9 +83,8 @@ const Sidebar = ({ setTool, undo, color, setColor, stageRef }) => {
         )}
       </div>
 
-      
-      <IconButton className="tool" onClick={handleClick}>
-        <GetApp />
+      <IconButton className="tool" onClick={() => exportToImage('png')}>
+        <FileDownload /> {/* Export as PNG button */}
       </IconButton>
     </div>
   );
@@ -103,6 +96,7 @@ Sidebar.propTypes = {
   color: PropTypes.string.isRequired,
   setColor: PropTypes.func.isRequired,
   stageRef: PropTypes.object.isRequired,
+  setShapes: PropTypes.func.isRequired, // Add prop type for setShapes
 };
 
 export default Sidebar;

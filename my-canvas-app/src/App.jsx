@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Canvas from './components/Canvas';
 import { DndProvider } from 'react-dnd';
@@ -11,6 +11,7 @@ const App = () => {
   const [history, setHistory] = useState([]);
   const [shapes, setShapes] = useState([]);
   const [color, setColor] = useState('#000000'); // Default color black
+  const stageRef = useRef(null); // Create a ref for the Stage
 
   const undo = () => {
     setHistory((prevHistory) => {
@@ -33,6 +34,8 @@ const App = () => {
           undo={undo}
           color={color}
           setColor={setColor}
+          stageRef={stageRef} // Pass stageRef to Sidebar
+          setShapes={setShapes} // Pass setShapes to Sidebar
         />
         <Canvas
           tool={tool}
@@ -40,6 +43,7 @@ const App = () => {
           setShapes={setShapes}
           addToHistory={addToHistory}
           color={color}
+          stageRef={stageRef} // Pass stageRef to Canvas
         />
       </div>
     </DndProvider>

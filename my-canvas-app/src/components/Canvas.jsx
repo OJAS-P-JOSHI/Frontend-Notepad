@@ -1,14 +1,15 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Stage, Layer, Rect, Circle, Line, Text, Arrow } from 'react-konva';
+import { Stage, Layer, Rect, Circle, Line, Text, Arrow, Image } from 'react-konva';
 
-const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
+const Canvas = ({ tool, shapes, setShapes, addToHistory, color, stageRef }) => { // Include stageRef prop
   const [isDrawing, setIsDrawing] = useState(false);
   const [newShape, setNewShape] = useState(null);
   const [lastShapeAdded, setLastShapeAdded] = useState(null);
   const [editingText, setEditingText] = useState(null);
   const textAreaRef = useRef(null);
-  const canvasRef = useRef(null);
+  // const canvasRef = useRef(null); // Remove this line as stageRef is used instead
 
   const handleMouseDown = (e) => {
     if (tool === 'text' || tool === 'move') return;
@@ -156,7 +157,7 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
         onMouseUp={handleMouseUp}
         onDblClick={handleDblClick}
         onClick={handleCanvasClick}
-        ref={canvasRef}
+        ref={stageRef} // Use stageRef here
       >
         <Layer>
           {shapes.map((shape, index) => {
@@ -258,6 +259,19 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color }) => {
                     />
                   )
                 );
+              case 'image':
+                return (
+                  <Image
+                    key={index}
+                    image={new window.Image(shape.src)}
+                    x={shape.x}
+                    y={shape.y}
+                    width={shape.width}
+                    height={shape.height}
+                    draggable={tool === 'move'}
+                    onDragEnd={(e) => handleDragEnd(e, index)}
+                  />
+                );
               default:
                 return null;
             }
@@ -293,6 +307,7 @@ Canvas.propTypes = {
   setShapes: PropTypes.func.isRequired,
   addToHistory: PropTypes.func.isRequired,
   color: PropTypes.string.isRequired,
+  stageRef: PropTypes.object.isRequired, // Add prop type for stageRef
 };
 
 export default Canvas;
