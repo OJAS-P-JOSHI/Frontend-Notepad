@@ -44,6 +44,7 @@ const App = () => {
           addToHistory={addToHistory}
           color={color}
           stageRef={stageRef} // Pass stageRef to Canvas
+          setTool={setTool}
         />
       </div>
     </DndProvider>
