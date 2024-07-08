@@ -2,14 +2,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Stage, Layer, Rect, Circle, Line, Text, Arrow, Image } from 'react-konva';
+import { getCanvas } from '../api-handling/api'; // Import getCanvas function from api.js
 
-const Canvas = ({ tool, shapes, setShapes, addToHistory, color, stageRef }) => { // Include stageRef prop
+const Canvas = ({ tool, shapes, setShapes, addToHistory, color, stageRef, setTool }) => { // Include stageRef prop
   const [isDrawing, setIsDrawing] = useState(false);
   const [newShape, setNewShape] = useState(null);
   const [lastShapeAdded, setLastShapeAdded] = useState(null);
   const [editingText, setEditingText] = useState(null);
   const textAreaRef = useRef(null);
   // const canvasRef = useRef(null); // Remove this line as stageRef is used instead
+  useEffect(() => {
+    ;(async () => {
+      await getCanvas();
+    })()
+  }, []);
 
   const handleMouseDown = (e) => {
     if (tool === 'text' || tool === 'move') return;
@@ -82,6 +88,7 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color, stageRef }) => {
         setShapes(updatedShapes);
         addToHistory(updatedShapes);
       }
+      setTool('move');
     }
   };
 
@@ -124,6 +131,7 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color, stageRef }) => {
       setEditingText(null);
       textAreaRef.current.style.display = 'none'; // Hide textarea on blur
       addToHistory([...newShapes]);
+      setTool('move');
     }
   };
 

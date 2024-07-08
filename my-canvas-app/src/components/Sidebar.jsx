@@ -67,6 +67,9 @@ const Sidebar = ({ setTool, undo, color, setColor, stageRef, setShapes }) => { /
       <IconButton className="tool" onClick={undo}>
         <Undo />
       </IconButton>
+      <IconButton className="tool" onClick={handleClick}>
+        
+      </IconButton>
 
       <div
         onMouseEnter={handleColorIconEnter}
