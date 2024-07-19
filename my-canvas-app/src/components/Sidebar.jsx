@@ -5,6 +5,7 @@ import { IconButton, Popover, Box } from '@mui/material';
 import { Rectangle, PanTool, Circle, ArrowUpward, TextFields, Undo, GetApp, Create, ColorLens, FileDownload } from '@mui/icons-material'; // Import FileDownload icon
 import { SketchPicker } from 'react-color';
 import PngExp from './PngExp'; // Import PngExp component
+import {handleSave} from '../api-handling/api';
 
 const Sidebar = ({ setTool, undo, color, setColor, stageRef, setShapes }) => { // Include stageRef prop
   const [anchorEl, setAnchorEl] = useState(null);
@@ -67,9 +68,7 @@ const Sidebar = ({ setTool, undo, color, setColor, stageRef, setShapes }) => { /
       <IconButton className="tool" onClick={undo}>
         <Undo />
       </IconButton>
-      <IconButton className="tool" onClick={handleClick}>
-        
-      </IconButton>
+      <button className='save-btn' onClick={handleSave}>Save</button>
 
       <div
         onMouseEnter={handleColorIconEnter}
