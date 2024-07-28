@@ -11,11 +11,12 @@ const Canvas = ({ tool, shapes, setShapes, addToHistory, color, stageRef, setToo
   const [editingText, setEditingText] = useState(null);
   const textAreaRef = useRef(null);
   // const canvasRef = useRef(null); // Remove this line as stageRef is used instead
+
   useEffect(() => {
     ;(async () => {
-      await getCanvas();
+      await getCanvas(setShapes);
     })()
-  }, []);
+  }, [setShapes]);
 
   const handleMouseDown = (e) => {
     if (tool === 'text' || tool === 'move') return;
