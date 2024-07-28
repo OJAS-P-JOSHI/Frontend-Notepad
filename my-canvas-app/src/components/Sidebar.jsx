@@ -7,7 +7,7 @@ import { SketchPicker } from 'react-color';
 import PngExp from './PngExp'; // Import PngExp component
 import {handleSave} from '../api-handling/api';
 
-const Sidebar = ({ setTool, undo, color, setColor, stageRef, setShapes }) => { // Include stageRef prop
+const Sidebar = ({ setTool, undo, color, setColor, stageRef, shapes, setShapes }) => { // Include stageRef prop
   const [anchorEl, setAnchorEl] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -68,7 +68,7 @@ const Sidebar = ({ setTool, undo, color, setColor, stageRef, setShapes }) => { /
       <IconButton className="tool" onClick={undo}>
         <Undo />
       </IconButton>
-      <button className='save-btn' onClick={handleSave}>Save</button>
+      <button className='save-btn border border-black' onClick={() => handleSave(shapes)}>Save</button>
 
       <div
         onMouseEnter={handleColorIconEnter}

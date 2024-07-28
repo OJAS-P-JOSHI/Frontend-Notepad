@@ -35,6 +35,7 @@ const App = () => {
           color={color}
           setColor={setColor}
           stageRef={stageRef} // Pass stageRef to Sidebar
+          shapes={shapes}
           setShapes={setShapes} // Pass setShapes to Sidebar
         />
         <Canvas
