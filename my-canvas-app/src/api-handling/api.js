@@ -1,4 +1,4 @@
-import { dark } from "@mui/material/styles/createPalette";
+//src\api-handling\api.js
 import axios from "axios";
 
 export const getCanvas = async (setShapes) => {
